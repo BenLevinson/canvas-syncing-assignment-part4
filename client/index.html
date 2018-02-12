@@ -2,12 +2,65 @@
 <html lang="en">
 <head>
     <script src="https://npmcdn.com/babel-core@5.8.38/browser.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <script type="text/babel" >
         "use strict";
-    
+
+        const randomNum = (r) => {
+            return Math.floor(Math.random() * r);
+        };
+
+        let canvas;
+        let ctx;
+        let socket; 
+
+        let bufferCanvas;
+        let bufferCtx;
+
+        const init = () => {
+            canvas = document.querySelector("#topCanvas");
+            ctx = canvas.getContext("2d");
+            socket = io.connect();
+            connectSocket();
+            setInterval( () => {
+                bufferCtx.fillRect(0, 0, 50, 50);
+                const imageData = bufferCanvas.toDataURL();
+                
+                const data = {
+                    x: randomNum(600),
+                    y: randomNum(600),
+                    width: 50,
+                    height: 50,
+                    imageData: imageData,
+                };
+                socket.emit('draw', data);
+            }, 3000);
+        };
+        window.onload = init;
+        
+        const connectSocket = () => {
+            socket.emit('join');
+            bufferCanvas = document.createElement("canvas");
+            bufferCanvas.height = 30;
+            bufferCanvas.width = 30;
+            bufferCtx = bufferCanvas.getContext("2d");
+            
+            ctx.fillStyle = 'red';
+            ctx.fillRect(250, 250, 100, 100);
+            socket.on('drawCanvas', (data) => {
+                let pic = new Image();
+                pic.onload = () => {
+                    ctx.save();
+                    ctx.globalCompositeOperation = "source-over";
+                    ctx.drawImage(pic, data.x, data.y, data.width, data.height);
+                    ctx.restore();
+                };
+                pic.src = data.imageData;
+            });
+        };
     </script>
 </head>
 <body>
-
+    <canvas id="topCanvas" height="600" width="600">Please use an HTML 5 browser</canvas>
 </body>
 </html>
